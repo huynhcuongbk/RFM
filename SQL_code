@@ -1,0 +1,37 @@
+SELECT * FROM sales;
+SELECT * FROM customer;
+-----RFM---------
+WITH RFM_Base
+AS
+(
+ SELECT b.Customer_Name as CustomerName,
+    DATEDIFF(DAY, MAX(a.Order_Date), CONVERT(date, GETDATE())) as Recency_value,
+    CoUNT(distinct a.Order_Date ) as Frequency_value,
+    SUM(a.Sales) as Monetary_value 
+ from sales as a 
+ INNER join customer as b on a.Customer_ID=b.Customer_ID 
+ group by b.Customer_Name
+)
+--SELECT * FROM RFM_Base;
+, RFM_Score
+AS
+(
+  SELECT*,
+    NTILE(5)OVER(order by Recency_value desc) as R_Score,
+    NTILE(5)OVER(order by Frequency_value asc) as F_Score,
+    NTILE(5)OVER(order by Monetary_value asc) as M_Score
+  FROM RFM_Base
+)
+--SELECT * FROM RFM_Score
+, RFM_Final
+AS
+(
+SELECT*,
+ CONCAT(R_Score, F_Score, M_Score) as RFM_Finall
+FROM RFM_Score
+)
+--SELECT * FROM RFM_Final
+SELECT f.*, s.Segment
+from RFM_Final AS f 
+JOIN [segment scores] as s ON f.RFM_Finall=s.Scores
+;
